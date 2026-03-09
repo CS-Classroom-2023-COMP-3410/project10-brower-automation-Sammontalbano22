@@ -56,12 +56,23 @@ const credentials = JSON.parse(fs.readFileSync('credentials.json', 'utf8'));
     await page.waitForSelector('#user_list_name');
     await page.type('#user_list_name', 'Node Libraries');
 
-    // Wait for auto-check validation to complete and button to become enabled
-    await page.waitForSelector('.Button--fullWidth.Button--primary:not([disabled])');
+    // Wait for buttons to become visible
+    await new Promise(r => setTimeout(r, 1000));
 
-    // Identify and click the "Create" button
+    // Click Create once to trigger validation
     const buttons = await page.$$('.Button--primary.Button--medium.Button');
     for (const button of buttons) {
+        const buttonText = await button.evaluate(node => node.textContent.trim());
+        if (buttonText === 'Create') {
+            await button.click();
+            break;
+        }
+    }
+
+    // Wait for validation to complete then click Create again to actually submit
+    await new Promise(r => setTimeout(r, 2000));
+    const buttons2 = await page.$$('.Button--primary.Button--medium.Button');
+    for (const button of buttons2) {
         const buttonText = await button.evaluate(node => node.textContent.trim());
         if (buttonText === 'Create') {
             await button.click();
@@ -84,15 +95,18 @@ const credentials = JSON.parse(fs.readFileSync('credentials.json', 'utf8'));
 
         await new Promise(r => setTimeout(r, 3000));
         await page.waitForSelector('.js-user-list-menu-item');
-        const lists = await page.$$('.js-user-list-menu-item');
 
-        for (const list of lists) {
-          const value = await list.evaluate(el => el.value);
-          if (value === 'Node Libraries') {
-            await list.click();
-            break;
-          }
-        }
+        // Match by label text instead of value since value is now a numeric ID
+        await page.evaluate(() => {
+            const items = document.querySelectorAll('.form-checkbox');
+            for (const item of items) {
+                const label = item.querySelector('.Truncate-text');
+                if (label && label.innerText.includes('Node Libraries')) {
+                    item.querySelector('.js-user-list-menu-item').click();
+                    break;
+                }
+            }
+        });
 
         // Allow some time for the action to process
         await new Promise(r => setTimeout(r, 1000));
