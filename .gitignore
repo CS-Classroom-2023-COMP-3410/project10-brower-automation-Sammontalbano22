@@ -140,4 +140,5 @@ package.json
 .yarn/install-state.gz
 .pnp.*
 credentials.json
+package.json
 
